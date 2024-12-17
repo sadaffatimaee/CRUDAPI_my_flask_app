@@ -1,7 +1,8 @@
 import logging
 from flask import Flask, jsonify, request
-import mysql.connector
-from mysql.connector import Error
+import psycopg2
+from psycopg2 import OperationalError, extras
+import os  # To access environment variables
 
 # Set up logging for detailed output
 logging.basicConfig(level=logging.DEBUG)
@@ -9,20 +10,22 @@ logging.basicConfig(level=logging.DEBUG)
 # Initialize Flask app
 app = Flask(__name__)
 
-# MySQL database connection
+# Database connection function
 def get_db_connection():
     try:
-        connection = mysql.connector.connect(
-            host='localhost',  # Change this to 'localhost' if you're not using Docker
-            user='root',
-            password='7406312344',
-            database='my_flask_db'
+        logging.debug(f"Connecting to DB at {os.getenv('DB_HOST')}")
+        connection = psycopg2.connect(
+            host=os.getenv('DB_HOST'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            dbname=os.getenv('DB_NAME'),
+            port=os.getenv('DB_PORT')
         )
+        logging.debug("Database connection successful.")
         return connection
-    except Error as e:
-        logging.error(f"Error connecting to MySQL: {e}")
+    except OperationalError as e:
+        logging.error(f"Error connecting to PostgreSQL: {e}")
         raise
-
 
 # Route to display the home page
 @app.route('/')
@@ -34,13 +37,13 @@ def home():
 def get_items():
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor(cursor_factory=extras.RealDictCursor)  # Using RealDictCursor for dict-like results
         cursor.execute('SELECT * FROM items')
         items = cursor.fetchall()
         cursor.close()
         conn.close()
         return jsonify(items)
-    except Error as e:
+    except OperationalError as e:
         logging.error(f"Error fetching items: {e}")
         return jsonify({'message': 'Internal server error. Please try again later.'}), 500
 
@@ -63,7 +66,7 @@ def add_item():
         conn.close()
 
         return jsonify({'message': 'Item added successfully'}), 201
-    except Error as e:
+    except OperationalError as e:
         logging.error(f"Error adding item: {e}")
         return jsonify({'message': 'Internal server error. Please try again later.'}), 500
 
@@ -94,7 +97,7 @@ def update_item(id):
         conn.close()
 
         return jsonify({'message': 'Item updated successfully'})
-    except Error as e:
+    except OperationalError as e:
         logging.error(f"Error updating item {id}: {e}")
         return jsonify({'message': 'Internal server error. Please try again later.'}), 500
 
@@ -117,7 +120,7 @@ def delete_item(id):
         conn.close()
 
         return jsonify({'message': 'Item deleted successfully'})
-    except Error as e:
+    except OperationalError as e:
         logging.error(f"Error deleting item {id}: {e}")
         return jsonify({'message': 'Internal server error. Please try again later.'}), 500
 
