@@ -24,7 +24,5 @@ jobs:
           source venv/bin/activate
           pip install -r requirements.txt
 
-      - name: Deploy to Render
-        run: |
-          curl -fsSL https://render.com/deploy/success > /dev/null
+      
 
