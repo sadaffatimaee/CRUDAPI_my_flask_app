@@ -1,8 +1,12 @@
 import logging
+from dotenv import load_dotenv
+import os  # To access environment variables
 from flask import Flask, jsonify, request
 import psycopg2
 from psycopg2 import OperationalError, extras
-import os  # To access environment variables
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Set up logging for detailed output
 logging.basicConfig(level=logging.DEBUG)
@@ -38,7 +42,7 @@ def get_items():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(cursor_factory=extras.RealDictCursor)  # Using RealDictCursor for dict-like results
-        cursor.execute('SELECT * FROM items')
+        cursor.execute('SELECT * FROM items')  # Assuming 'items' is the correct table name
         items = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -70,10 +74,12 @@ def add_item():
         logging.error(f"Error adding item: {e}")
         return jsonify({'message': 'Internal server error. Please try again later.'}), 500
 
-# Route to update an item
+
+# Route to update an existing item
 @app.route('/items/<int:id>', methods=['PUT'])
 def update_item(id):
     try:
+        # Get the new data from the request
         updated_item = request.get_json()
         if not updated_item or 'name' not in updated_item or 'description' not in updated_item:
             return jsonify({'message': 'Invalid input, name and description are required'}), 400
@@ -81,25 +87,30 @@ def update_item(id):
         name = updated_item['name']
         description = updated_item['description']
 
+        # Connect to the database
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        # Check if the item exists
         cursor.execute('SELECT * FROM items WHERE id = %s', (id,))
         item = cursor.fetchone()
         if not item:
-            cursor.close()
-            conn.close()
             return jsonify({'message': 'Item not found'}), 404
 
-        cursor.execute('UPDATE items SET name = %s, description = %s WHERE id = %s',
+        # Update the item in the database
+        cursor.execute('UPDATE items SET name = %s, description = %s WHERE id = %s', 
                        (name, description, id))
         conn.commit()
+
         cursor.close()
         conn.close()
 
-        return jsonify({'message': 'Item updated successfully'})
+        return jsonify({'message': 'Item updated successfully'}), 200
+
     except OperationalError as e:
-        logging.error(f"Error updating item {id}: {e}")
+        logging.error(f"Error updating item: {e}")
         return jsonify({'message': 'Internal server error. Please try again later.'}), 500
+
 
 # Route to delete an item
 @app.route('/items/<int:id>', methods=['DELETE'])
