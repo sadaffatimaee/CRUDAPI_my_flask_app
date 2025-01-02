@@ -10,6 +10,9 @@ COPY . /app
 # Install dependencies from the requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install gunicorn
+RUN pip install gunicorn
+
 # Set the Flask environment variables
 ENV FLASK_APP=app.py
 ENV FLASK_RUN_HOST=0.0.0.0
@@ -17,7 +20,9 @@ ENV FLASK_RUN_HOST=0.0.0.0
 # Expose the port your app will run on
 EXPOSE 5000
 
-# Run the Flask app
-CMD ["flask", "run"]
+# Run the Flask app using Gunicorn
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+
+
 
 
