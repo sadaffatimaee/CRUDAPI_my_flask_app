@@ -34,7 +34,7 @@ def get_db_connection():
 # Route to display the home page
 @app.route('/')
 def home():
-    return jsonify({'message': 'hello sadaf'})
+    return jsonify({"message": "hello welcome to my Sadaf's flask app"})
 
 # Route to get all items
 @app.route('/items', methods=['GET'])
